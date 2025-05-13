@@ -3,14 +3,15 @@
 
 using namespace infodif;
 
-void sampleFunction(std::shared_ptr<SharedData>){
-    std::cout << "I am a sample function..." << std::endl;
+void sampleFunction(std::shared_ptr<SharedData> data){
+    // std::cout << "I am a sample function..." << std::endl;
+    int val = std::any_cast<int>((*data)["level"]);
+    (*data)["level"] = val + 1;
 };
 
 int main(){
     Pipeline pipeline("videopath");
     
-
     pipeline.add_tmp_filter(sampleFunction);
     pipeline.add_tmp_filter(sampleFunction);
     pipeline.add_tmp_filter(sampleFunction);
