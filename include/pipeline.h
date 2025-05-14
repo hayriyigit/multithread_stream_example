@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <vector>
 #include <any>
+#include "threadsafequeue.h"
 
 namespace infodif
 {
@@ -59,8 +60,12 @@ namespace infodif
              * @throws PipelineExecutionException if the pipeline fails to start.
              */
             void start();
+            void stop();
+            void push_data(std::shared_ptr<SharedData> data);
 
             int get_caller_size();
+            std::string get_state();
+            std::shared_ptr<ThreadSafeQueue<std::shared_ptr<SharedData>>> get_outout_queue();
 
             /**
              * @brief Adds a filter to the end of the pipeline.
@@ -82,8 +87,10 @@ namespace infodif
 
         private:
             std::vector<std::unique_ptr<Filter>> m_callers;
-            State m_current_state{State::Idle};
+            State m_current_state{State::Paused};
             std::string video_path_;
+            std::vector<std::shared_ptr<ThreadSafeQueue<std::shared_ptr<SharedData>>>> queues;
+            std::vector<std::thread> threads;
     };
 
 } // namespace infodif

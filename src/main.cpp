@@ -20,6 +20,38 @@ int main(){
     std::cout << "Size of filter vector: " << pipeline.get_caller_size() << std::endl;
 
     pipeline.start();
+
+    std::string state = pipeline.get_state();
+    std::cout << "Before " << state << std::endl;
+
+    for (size_t i = 0; i < 5; ++i)
+    {
+        auto data = std::make_shared<SharedData>();
+        (*data)["level"] = static_cast<int>(i);
+        pipeline.push_data(data);
+        std::string state = pipeline.get_state();
+        std::cout << state << std::endl;
+    };
+
+    state = pipeline.get_state();
+    std::cout << "After " << state << std::endl;
+
+
+    pipeline.stop();
     
+    state = pipeline.get_state();
+    std::cout << state << std::endl;
+
+    auto final_queue = pipeline.get_outout_queue();
+    while (true)
+    {
+        auto data = final_queue->pop();
+        if (!data)
+            break;
+
+        int val = std::any_cast<int>((*data)["level"]);
+        std::cout << "Processed data: level = " << val << std::endl;
+    }
+
     return 0;
 }
