@@ -31,4 +31,4 @@ T ThreadSafeQueue<T>::pop()
 template<typename T>
 void ThreadSafeQueue<T>::set_wait_callback(std::function<void(bool)> callback) {
     wait_callback = callback;
-}
+};

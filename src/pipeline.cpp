@@ -14,17 +14,18 @@ void Pipeline::start()
 {
     std::cout << "Pipeline has been started" << std::endl;
 
-    if(this->queues.size() == this->m_callers.size()){
+    if (this->queues.size() == this->m_callers.size())
+    {
         queues.push_back(std::make_shared<ThreadSafeQueue<std::shared_ptr<SharedData>>>());
-    }
+    };
 
-    queues[0]->set_wait_callback([this](bool waiting) {
+    queues[0]->set_wait_callback([this](bool waiting)
+                                 {
         if (waiting) {
             this->m_current_state = State::Idle;
         } else {
             this->m_current_state = State::Running;
-        }
-    });
+        } });
 
     for (size_t i = 0; i < get_caller_size(); ++i)
     {
@@ -32,7 +33,7 @@ void Pipeline::start()
         auto output_queue = queues[i + 1];
         auto &filter = m_callers[i];
 
-        threads.emplace_back([i, input_queue, output_queue, &filter]()
+        threads.emplace_back([input_queue, output_queue, &filter]()
                              {
                                  while (true)
                                  {
@@ -45,10 +46,10 @@ void Pipeline::start()
                                     output_queue->push(data);
                                  }; });
     };
-
 };
 
-void Pipeline::stop(){
+void Pipeline::stop()
+{
     queues[0]->push(nullptr);
 
     for (auto &t : threads)
@@ -64,25 +65,28 @@ int Pipeline::get_caller_size()
     return m_callers.size();
 };
 
-std::string Pipeline::get_state(){
+std::string Pipeline::get_state()
+{
     switch (this->m_current_state)
     {
-        case State::Idle:
-            return "idle";
-        case State::Paused:
-            return "paused";
-        case State::Running:
-            return "running";
-        default:
-            return "statenotfound";
+    case State::Idle:
+        return "idle";
+    case State::Paused:
+        return "paused";
+    case State::Running:
+        return "running";
+    default:
+        return "statenotfound";
     }
 };
 
-void Pipeline::push_data(std::shared_ptr<SharedData> data){
+void Pipeline::push_data(std::shared_ptr<SharedData> data)
+{
     queues[0]->push(data);
 };
 
-std::shared_ptr<ThreadSafeQueue<std::shared_ptr<SharedData>>> Pipeline::get_outout_queue(){
+std::shared_ptr<ThreadSafeQueue<std::shared_ptr<SharedData>>> Pipeline::get_outout_queue()
+{
     return queues.back();
 };
 
@@ -114,4 +118,4 @@ void Pipeline::add_tmp_filter(std::function<void(std::shared_ptr<SharedData>)> t
     m_callers.push_back(std::move(filter));
 
     queues.push_back(std::make_shared<ThreadSafeQueue<std::shared_ptr<SharedData>>>());
-}
+};

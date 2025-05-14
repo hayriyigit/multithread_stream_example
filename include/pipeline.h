@@ -93,4 +93,4 @@ namespace infodif
             std::vector<std::thread> threads;
     };
 
-} // namespace infodif
+}; // namespace infodif
