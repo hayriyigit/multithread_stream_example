@@ -3,7 +3,7 @@ include(FetchContent)
 FetchContent_Declare(
   googletest
   GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG        v1.16.0
+  GIT_TAG v1.16.0
 )
 FetchContent_MakeAvailable(googletest)
 add_library(GTest::GTest INTERFACE IMPORTED)
@@ -13,7 +13,7 @@ add_executable(pipeline_test
   pipeline_test.cpp)
 
 target_link_libraries(pipeline_test
- PRIVATE
+  PRIVATE
   gtest
   gmock
   pipeline
