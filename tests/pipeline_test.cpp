@@ -2,9 +2,15 @@
 #include <gtest/gtest.h>
 #include <pipeline/pipeline.h>
 
+#include <chrono>
+#include <random>
+#include <thread>
+
 #include "filter_mock.h"
 
 using namespace infodif;
+
+using FunctionType = std::function<void(std::shared_ptr<SharedData>)>;
 
 struct PipelineTest : testing::Test {
     Pipeline *p;
@@ -15,7 +21,17 @@ struct PipelineTest : testing::Test {
 };
 
 TEST_F(PipelineTest, TestAddFilter_Class) {
-    p->add_filter(std::make_unique<MockFilter>());
+    auto mf = std::make_unique<MockFilter>();
+    auto *mf_ptr = mf.get();
+
+    p->add_filter(std::move(mf));
+
+    // Check pushed filter is Filter type
+    {
+        auto &m_callers = p->get_m_callers_for_test();
+        const auto &uptr = std::get<std::unique_ptr<Filter>>(m_callers[0]);
+        EXPECT_EQ(uptr.get(), mf_ptr);
+    }
 
     auto expected = 1;
     auto actual = p->get_caller_size();
@@ -24,13 +40,19 @@ TEST_F(PipelineTest, TestAddFilter_Class) {
 }
 
 TEST_F(PipelineTest, TestAddFilter_Functional) {
-    auto data = std::make_shared<SharedData>();
-
     auto fn =
-        std::make_unique<std::function<void(std::shared_ptr<SharedData>)>>(
-            [&](std::shared_ptr<SharedData>) {});
+        std::make_unique<FunctionType>([&](std::shared_ptr<SharedData>) {});
+    auto *fn_ptr = fn.get();
 
     p->add_tmp_filter(std::move(fn));
+
+    // Check pushed filter is function type
+    {
+        auto &m_callers = p->get_m_callers_for_test();
+        const auto &uptr =
+            std::get<std::unique_ptr<FunctionType>>(m_callers[0]);
+        EXPECT_EQ(uptr.get(), fn_ptr);
+    }
 
     auto expected = 1;
     auto actual = p->get_caller_size();
@@ -39,11 +61,8 @@ TEST_F(PipelineTest, TestAddFilter_Functional) {
 }
 
 TEST_F(PipelineTest, TestAddFilterOrder) {
-    auto data = std::make_shared<SharedData>();
-
     auto fn =
-        std::make_unique<std::function<void(std::shared_ptr<SharedData>)>>(
-            [&](std::shared_ptr<SharedData>) {});
+        std::make_unique<FunctionType>([&](std::shared_ptr<SharedData>) {});
     auto mf = std::make_unique<MockFilter>();
 
     auto *fn_ptr = fn.get();  // Pointer to the function type
@@ -55,9 +74,8 @@ TEST_F(PipelineTest, TestAddFilterOrder) {
     auto &m_callers = p->get_m_callers_for_test();
 
     {
-        const auto &uptr = std::get<
-            std::unique_ptr<std::function<void(std::shared_ptr<SharedData>)>>>(
-            m_callers[0]);
+        const auto &uptr =
+            std::get<std::unique_ptr<FunctionType>>(m_callers[0]);
         EXPECT_EQ(uptr.get(), fn_ptr);
     }
 
@@ -98,11 +116,9 @@ TEST_F(PipelineTest, TestState_Idle) {
 
 TEST_F(PipelineTest, TestState_Running) {
     auto data = std::make_shared<SharedData>();
-    auto fn =
-        std::make_unique<std::function<void(std::shared_ptr<SharedData>)>>(
-            [&](std::shared_ptr<SharedData>) {
-                sleep(2);  // Something time consuming
-            });
+    auto fn = std::make_unique<FunctionType>([&](std::shared_ptr<SharedData>) {
+        sleep(2);  // Something time consuming
+    });
     p->add_tmp_filter(std::move(fn));
 
     p->push_data(data);
@@ -119,38 +135,60 @@ TEST_F(PipelineTest, TestState_Running) {
     p->stop();
 }
 
-TEST_F(PipelineTest, TestPiepelineBehavior) {
+TEST_F(PipelineTest, TestPipelineCallOrder) {
+    std::vector<int> order_log;
     auto data = std::make_shared<SharedData>();
-    (*data)["debug"] = std::string{""};
-    auto fn1 =
-        std::make_unique<std::function<void(std::shared_ptr<SharedData>)>>(
-            [&](std::shared_ptr<SharedData> data) {
-                std::string val = std::any_cast<std::string>((*data)["debug"]);
-                (*data)["debug"] = val + "1";
-            });
 
-    auto fn2 =
-        std::make_unique<std::function<void(std::shared_ptr<SharedData>)>>(
-            [&](std::shared_ptr<SharedData> data) {
-                std::string val = std::any_cast<std::string>((*data)["debug"]);
-                (*data)["debug"] = val + "2";
-            });
-    p->add_tmp_filter(std::move(fn1));
-    p->add_tmp_filter(std::move(fn2));
+    p->add_filter(std::make_unique<SpyFilter>(1, order_log));
+    p->add_filter(std::make_unique<SpyFilter>(2, order_log));
+    p->add_filter(std::make_unique<SpyFilter>(3, order_log));
 
     p->push_data(data);
 
     p->start();
+    p->stop();
+
+    EXPECT_EQ(order_log, std::vector<int>({1, 2, 3}));
+}
+
+TEST_F(PipelineTest, TestPiepelineBehavior) {
+    auto data = std::make_shared<SharedData>();
+    (*data)["debug"] = std::string{""};
+    size_t filter_count(5);
+    size_t data_count(50);
+
+    for (size_t i = 0; i < filter_count; ++i) {
+        auto fn = std::make_unique<FunctionType>(
+            [i](std::shared_ptr<SharedData> data) {
+                std::mt19937_64 eng{std::random_device{}()};
+                std::uniform_int_distribution<> dist{10, 100};
+                std::this_thread::sleep_for(
+                    std::chrono::milliseconds{dist(eng)});
+                std::string val = std::any_cast<std::string>((*data)["debug"]);
+                (*data)["debug"] = val + std::to_string(i);
+            });
+        p->add_tmp_filter(std::move(fn));
+    };
+
+    p->start();
+
+    std::vector<std::string> expected_vector;
+
+    for (size_t i = 0; i < data_count; ++i) {
+        auto data = std::make_shared<SharedData>();
+        (*data)["debug"] = std::to_string(i);
+        p->push_data(data);
+        expected_vector.push_back(std::to_string(i) + "01234");
+    };
 
     p->stop();
 
     auto result_queue = p->get_output_queue();
-    auto result = result_queue->pop();
-
-    std::string expected = "12";
-    std::string actual = std::any_cast<std::string>((*result)["debug"]);
-
-    EXPECT_EQ(expected, actual);
+    for (const std::string &expected : expected_vector) {
+        auto result = result_queue->pop();
+        std::string actual = std::any_cast<std::string>((*result)["debug"]);
+        EXPECT_EQ(expected, actual);
+    };
 }
 
 TEST_F(PipelineTest, TestEmptyCallerThrow) {
