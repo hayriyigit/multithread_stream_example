@@ -15,7 +15,7 @@ PIPELINE PROJECT
 │       │   └── pipeline      # Public headers for the pipeline
 │       │       ├── pipeline.h
 │       │       ├── threadsafequeue.h
-│       │       └── threadsafequeue.tpp Implementation of thread-safe queue
+│       │       └── threadsafequeue.tpp # Implementation of thread-safe queue
 │       └── pipeline.cpp     # Implementation of the pipeline
 └── tests                    # Unit tests for the pipeline library
     ├── CMakeLists.txt       # CMake configuration for the tests
