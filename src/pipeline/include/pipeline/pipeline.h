@@ -61,6 +61,7 @@ class Pipeline {
     enum class State { Idle, Paused, Running };
 
     Pipeline();
+    ~Pipeline();
 
     /**
      * @brief Starts the pipeline execution.
@@ -182,6 +183,7 @@ class Pipeline {
      * pop from this queue to retrieve the processed results.
      */
     std::shared_ptr<ThreadSafeQueue<std::shared_ptr<SharedData>>> result_queue;
+
 };
 
 };  // namespace multimedia_pipeline

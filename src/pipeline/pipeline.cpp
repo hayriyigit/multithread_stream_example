@@ -10,6 +10,13 @@ Pipeline::Pipeline() {
         std::make_shared<ThreadSafeQueue<std::shared_ptr<SharedData>>>();
 };
 
+Pipeline::~Pipeline() {
+    this->stop();
+    this->m_callers.clear();
+    this->queues.clear();
+    this->result_queue.reset();
+};
+
 void Pipeline::start() {
     if (this->get_caller_size() == 0) {
         throw PipelineExecutionException(
@@ -54,7 +61,12 @@ void Pipeline::start() {
     };
 };
 
-void Pipeline::stop() {
+void Pipeline::stop() {    
+    if (this->m_current_state == State::Paused) {
+        std::cout << "Pipeline is already paused" << std::endl;
+        return;
+    }
+
     if (!queues.empty()) {
         this->queues[0]->push(nullptr);
     };
