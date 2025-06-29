@@ -3,7 +3,7 @@
 #include "iostream"
 #include "pipeline/threadsafequeue.h"
 
-using namespace infodif;
+using namespace multimedia_pipeline;
 
 Pipeline::Pipeline() {
     this->result_queue =

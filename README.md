@@ -83,7 +83,7 @@ ctest --output-on-failure
 #include "filter_mock.h"
 
 int main() {
-    using namespace infodif;
+    using namespace multimedia_pipeline;
     Pipeline pipeline;
     // Add filters (either function callbacks or Filter-derived classes)
     pipeline.add_filter(std::make_unique<MockFilter>());

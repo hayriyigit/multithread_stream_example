@@ -8,7 +8,7 @@
 
 #include "filter_mock.h"
 
-using namespace infodif;
+using namespace multimedia_pipeline;
 
 using FunctionType = std::function<void(std::shared_ptr<SharedData>)>;
 
@@ -138,14 +138,15 @@ TEST_F(PipelineTest, TestState_Running) {
 TEST_F(PipelineTest, TestPipelineCallOrder) {
     std::vector<int> order_log;
     auto data = std::make_shared<SharedData>();
-
+    
     p->add_filter(std::make_unique<SpyFilter>(1, order_log));
     p->add_filter(std::make_unique<SpyFilter>(2, order_log));
     p->add_filter(std::make_unique<SpyFilter>(3, order_log));
 
+    p->start();
     p->push_data(data);
 
-    p->start();
+
     p->stop();
 
     EXPECT_EQ(order_log, std::vector<int>({1, 2, 3}));

@@ -6,15 +6,15 @@
 #include <memory>
 #include <vector>
 
-class MockFilter : public infodif::Filter {
+class MockFilter : public multimedia_pipeline::Filter {
    public:
-    MOCK_METHOD(void, process, (std::shared_ptr<infodif::SharedData> data),
+    MOCK_METHOD(void, process, (std::shared_ptr<multimedia_pipeline::SharedData> data),
                 (override));
 };
 
-struct SpyFilter : public infodif::Filter {
+struct SpyFilter : public multimedia_pipeline::Filter {
     SpyFilter(int id, std::vector<int>& log) : _id(id), _log(log) {}
-    void process(std::shared_ptr<infodif::SharedData>) { _log.push_back(_id); }
+    void process(std::shared_ptr<multimedia_pipeline::SharedData>) { _log.push_back(_id); }
 
    private:
     int _id;

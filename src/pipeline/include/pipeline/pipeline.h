@@ -12,7 +12,7 @@
 
 #include "threadsafequeue.h"
 
-namespace infodif {
+namespace multimedia_pipeline {
 
 /**
  * @brief Type alias for shared data between filters
@@ -184,4 +184,4 @@ class Pipeline {
     std::shared_ptr<ThreadSafeQueue<std::shared_ptr<SharedData>>> result_queue;
 };
 
-};  // namespace infodif
+};  // namespace multimedia_pipeline
